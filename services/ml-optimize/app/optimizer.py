@@ -220,13 +220,15 @@ def optimize(routes: list[dict], req: OptimizerInput, *, seed: int = 0) -> list[
     # over normalized objectives. Otherwise NSGA-II ordering wins.
     top_front = [i for i in ranked_idx if rows[i].front == 0]
     if len(top_front) > req.top_k:
+        # More Pareto-optimal solutions than requested: pick best by weighted sum.
         norm = _normalize(objs[top_front])
         weights = np.array([req.weight_co2, req.weight_cost, req.weight_time])
         scores = (norm * weights).sum(axis=1)
         order = np.argsort(scores)
         chosen = [top_front[i] for i in order[: req.top_k]]
     else:
-        chosen = ranked_idx[: req.top_k]
+        # Return only front-0 solutions — never pad with dominated solutions.
+        chosen = top_front
 
     out: list[Solution] = []
     for rank, idx in enumerate(chosen, start=1):
