@@ -57,6 +57,8 @@ function syntheticEmbedding(seedStr: string): number[] {
   const r = mulberry32(h >>> 0);
   const v = Array.from({ length: dim }, () => r() * 2 - 1);
   const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0));
+  // Guard against the astronomically unlikely all-zero vector.
+  if (norm === 0) return v.map(() => 1 / Math.sqrt(dim));
   return v.map((x) => x / norm);
 }
 

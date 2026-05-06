@@ -4,7 +4,7 @@
 */ -}}
 {{- range $svc := list "mlForecast" "mlOptimize" "mlAgent" -}}
 {{- $cfg := index $.Values $svc -}}
-{{- $name := dict "mlForecast" "ml-forecast" "mlOptimize" "ml-optimize" "mlAgent" "ml-agent" | get $svc -}}
+{{- $name := index (dict "mlForecast" "ml-forecast" "mlOptimize" "ml-optimize" "mlAgent" "ml-agent") $svc -}}
 {{- $port := $cfg.service.port -}}
 ---
 apiVersion: apps/v1

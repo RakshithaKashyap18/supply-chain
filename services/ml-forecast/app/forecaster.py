@@ -46,7 +46,7 @@ def _to_frame(history: list[dict[str, Any]]) -> pd.DataFrame:
 
 
 def _mape(actual: np.ndarray, predicted: np.ndarray) -> float | None:
-    mask = actual != 0
+    mask = (actual != 0) & ~np.isnan(actual) & ~np.isnan(predicted)
     if not mask.any():
         return None
     return float(np.mean(np.abs((actual[mask] - predicted[mask]) / actual[mask])) * 100.0)
@@ -66,8 +66,11 @@ def fit_prophet(
         return _naive_seasonal_forecast(df, horizon_days, samples)
 
     # Hold out last 7 days for backtest if we have enough data.
+    # Require at least 48 training samples after the holdout split so Prophet
+    # has two full daily cycles to learn from.
     backtest_hours = 24 * 7
-    do_backtest = samples > backtest_hours + 24
+    min_train_samples = 48
+    do_backtest = samples > backtest_hours + min_train_samples
 
     train_df = df.iloc[:-backtest_hours] if do_backtest else df
     test_df = df.iloc[-backtest_hours:] if do_backtest else None

@@ -29,14 +29,15 @@ export async function* sseStream(
   try {
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+      // Flush any buffered multi-byte UTF-8 sequences on stream end.
+      buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
       let idx: number;
       while ((idx = buffer.indexOf('\n\n')) !== -1) {
         const frame = buffer.slice(0, idx);
         buffer = buffer.slice(idx + 2);
         yield parseFrame(frame);
       }
+      if (done) break;
     }
   } finally {
     reader.releaseLock();

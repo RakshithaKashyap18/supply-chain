@@ -18,8 +18,13 @@ export const optimizeRoutes: FastifyPluginAsync = async (app) => {
     const cacheKey = `optimize:${createHash('sha1').update(JSON.stringify(parsed.data)).digest('hex')}`;
     const cached = await app.redis.get(cacheKey);
     if (cached) {
-      reply.header('X-Cache', 'HIT');
-      return JSON.parse(cached);
+      const cacheValidated = OptimizeRouteResponse.safeParse(JSON.parse(cached));
+      if (cacheValidated.success) {
+        reply.header('X-Cache', 'HIT');
+        return cacheValidated.data;
+      }
+      // Stale or schema-mismatched cache entry — evict and re-fetch.
+      await app.redis.del(cacheKey);
     }
 
     try {

@@ -11,9 +11,8 @@ from __future__ import annotations
 import json
 import os
 import time
-import uuid
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 import asyncpg
 import httpx
@@ -101,7 +100,7 @@ instrument_app(app)
 
 class AgentRunRequest(BaseModel):
     goal: str = Field(..., min_length=10, max_length=2000)
-    constraints: dict | None = None
+    constraints: dict[str, Any] | None = None
     max_steps: int = Field(default=12, ge=1, le=30)
 
 
@@ -196,7 +195,3 @@ async def run_agent(req: AgentRunRequest) -> StreamingResponse:
 
 # Public exports for tests.
 __all__ = ["app"]
-
-
-# Avoid unused-import warning when uuid is only used inside lifespan
-_ = uuid

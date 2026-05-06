@@ -17,8 +17,13 @@ export const forecastRoutes: FastifyPluginAsync = async (app) => {
     const cacheKey = `forecast:${supplierId}:${horizonDays}`;
     const cached = await app.redis.get(cacheKey);
     if (cached) {
-      reply.header('X-Cache', 'HIT');
-      return JSON.parse(cached);
+      const cacheValidated = ForecastResponse.safeParse(JSON.parse(cached));
+      if (cacheValidated.success) {
+        reply.header('X-Cache', 'HIT');
+        return cacheValidated.data;
+      }
+      // Stale or schema-mismatched cache entry — evict and re-fetch.
+      await app.redis.del(cacheKey);
     }
 
     try {

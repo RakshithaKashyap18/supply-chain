@@ -132,7 +132,7 @@ async def forecast_supplier(
             model=result.model,
             points=[
                 {
-                    "date": datetime.fromisoformat(p.date).replace(tzinfo=timezone.utc),
+                    "date": datetime.strptime(p.date, "%Y-%m-%d").replace(tzinfo=timezone.utc),
                     "predicted": p.predicted,
                     "ciLower": p.ci_lower,
                     "ciUpper": p.ci_upper,

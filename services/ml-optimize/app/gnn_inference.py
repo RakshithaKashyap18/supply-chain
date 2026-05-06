@@ -97,7 +97,7 @@ class GnnPredictor:
         multipliers = predict_multipliers(
             self._model, node_features, edge_index_pairs, edge_features
         )
-        out = {rid: float(m) for rid, m in zip(route_ids, multipliers, strict=False)}
+        out = {rid: float(m) for rid, m in zip(route_ids, multipliers, strict=True)}
         # Edges we skipped get default 1.0
         for e in edges:
             out.setdefault(e[0], 1.0)

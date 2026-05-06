@@ -164,7 +164,7 @@ pipeline {
           helm upgrade --install smart-supply infra/helm/smart-supply \
             --namespace smart-supply-staging --create-namespace \
             --set image.tag=${IMAGE_TAG} \
-            --values infra/helm/values.staging.yaml \
+            --values infra/helm/smart-supply/values.staging.yaml \
             --wait --timeout=10m
         '''
       }
@@ -193,7 +193,7 @@ pipeline {
           helm upgrade --install smart-supply infra/helm/smart-supply \
             --namespace smart-supply-prod --create-namespace \
             --set image.tag=${IMAGE_TAG} \
-            --values infra/helm/values.prod.yaml \
+            --values infra/helm/smart-supply/values.prod.yaml \
             --wait --timeout=10m
         '''
       }

@@ -22,7 +22,7 @@ import {
   registerAllSchemas,
   validateForTopic,
 } from '@smart-supply/proto';
-import { TRANSPORT_MODE_FACTORS } from './lib/factors.js';
+import { TRANSPORT_MODE_FACTORS, type TransportMode } from './lib/factors.js';
 import type postgres from 'postgres';
 import type { WsHub } from './ws-hub.js';
 import type { Logger } from './logger.js';
@@ -45,6 +45,7 @@ export class StreamConsumer {
   private consumer: Consumer | null = null;
   private producer: Producer | null = null;
   private readonly state = new Map<string, RouteState>();
+  private readonly inFlight = new Set<string>();
   private flushTimer: NodeJS.Timeout | null = null;
   private routeMeta = new Map<
     string,
@@ -110,9 +111,13 @@ export class StreamConsumer {
       distance_km: number;
     }>;
     for (const r of rows) {
+      if (!(r.transport_mode in TRANSPORT_MODE_FACTORS)) {
+        this.log.warn({ routeId: r.id, transportMode: r.transport_mode }, 'unknown transport mode; skipping route');
+        continue;
+      }
       this.routeMeta.set(r.id, {
         supplierId: r.supplier_id,
-        transportMode: r.transport_mode as keyof typeof TRANSPORT_MODE_FACTORS,
+        transportMode: r.transport_mode as TransportMode,
         distanceKm: r.distance_km,
       });
     }
@@ -189,11 +194,19 @@ export class StreamConsumer {
   private flushExpired(): void {
     const now = Date.now();
     for (const [routeId, w] of this.state) {
-      if (now - w.windowStart >= WINDOW_MS && w.samples > 0) {
-        this.flushWindow(w).catch((err) =>
-          this.log.error({ err, routeId }, 'window flush failed'),
-        );
-        this.state.delete(routeId);
+      if (now - w.windowStart >= WINDOW_MS && w.samples > 0 && !this.inFlight.has(routeId)) {
+        // Snapshot the window so new messages accumulate into the next window
+        // while the async flush is in progress.
+        const snapshot: RouteState = { ...w };
+        w.windowStart = Date.now();
+        w.samples = 0;
+        w.sumCo2Kg = 0;
+        w.sumFuelL = 0;
+
+        this.inFlight.add(routeId);
+        this.flushWindow(snapshot)
+          .catch((err) => this.log.error({ err, routeId }, 'window flush failed'))
+          .finally(() => this.inFlight.delete(routeId));
       }
     }
   }

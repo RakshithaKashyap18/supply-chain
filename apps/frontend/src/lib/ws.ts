@@ -78,8 +78,8 @@ export class WsClient {
           const d = msg.data as { routeId: string; score: number; ts: string };
           useWsStore.getState().applyScore({ routeId: d.routeId, score: d.score, ts: d.ts });
         }
-      } catch {
-        // ignore malformed
+      } catch (err) {
+        console.warn('[ws] malformed message dropped', err);
       }
     };
     this.socket.onerror = () => useWsStore.getState().setStatus('error');
